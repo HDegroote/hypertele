@@ -27,7 +27,8 @@
   },
   "homepage": "https://github.com/bitfinexcom/hypertele",
   "devDependencies": {
-    "brittle": "^3.3.2"
+    "brittle": "^3.3.2",
+    "standard": "^17.1.0"
   },
   "scripts": {
     "test": "standard && brittle end-to-end-tests.js"
