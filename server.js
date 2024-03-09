@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+const path = require('path')
 const HyperDHT = require('hyperdht')
 const net = require('net')
 const b4a = require('b4a')
@@ -11,7 +12,7 @@ const connPiper = libNet.connPiper
 const SecureKey = require('secure-key')
 
 async function main () {
-  const helpMsg = 'Usage:\nhypertele-server -l service_port -u unix_socket ?--address service_address ?-c conf.json ?--seed seed ?--cert-skip ?--private ?--key-file ?--key-file-password'
+  const helpMsg = 'Usage:\nhypertele-server -l service_port -u unix_socket ?--address service_address ?-c conf.json ?--seed seed ?--cert-skip ?--private ?-i keypair_file ?--key-file-password'
 
   if (argv.help) {
     console.log(helpMsg)
@@ -46,7 +47,7 @@ async function main () {
     process.env.NODE_TLS_REJECT_UNAUTHORIZED = 0
   }
 
-  if (!conf.seed && !argv['key-file']) {
+  if (!conf.seed && !argv.i) {
     console.error('Error: conf.seed invalid')
     process.exit(-1)
   }
@@ -110,8 +111,8 @@ async function setupServer (argv, conf) {
 
   server.listen(keyPair).then(() => {
     if (conf.private) {
-      if (argv['key-file']) {
-        console.log(`hypertele (private, encrypted keypair): use the --key-file option with the same keypair to connect (listening on ${b4a.toString(keyPair.publicKey, 'hex')})`)
+      if (argv.i) {
+        console.log(`hypertele (private, encrypted keypair): use the -i option with the same keypair to connect (listening on ${b4a.toString(keyPair.publicKey, 'hex')})`)
       } else {
         console.log(`hypertele (private): connect with seed ${conf.seed} (listening on ${b4a.toString(keyPair.publicKey, 'hex')})`)
       }
@@ -136,23 +137,18 @@ async function getKeyPair (conf, argv) {
     return HyperDHT.keyPair(Buffer.from(conf.seed, 'hex'))
   }
 
-  if (!argv['key-file']) {
-    throw new Error('--seed or --key-file must be specified')
+  const keyFile = argv.i
+  if (!keyFile || path.parse(keyFile).ext === 'json') {
+    throw new Error('--seed or --i (non-json) must be specified')
   }
 
   const password = argv['key-file-password']
     ? b4a.from(argv['key-file-password'])
     : null // read from stdin if not specified
 
-  const secureKeyPair = await SecureKey.open(argv['key-file'], { password })
-
-  secureKeyPair.unlock()
-  const keyPair = {
-    publicKey: b4a.from(secureKeyPair.publicKey),
-    secretKey: b4a.from(secureKeyPair.secretKey)
-  }
-  secureKeyPair.lock()
-  secureKeyPair.clear()
+  const keyPair = await SecureKey.open(
+    argv.i, { password, protected: false }
+  )
 
   return keyPair
 }

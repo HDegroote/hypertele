@@ -14,7 +14,7 @@ const MAIN_DIR = path.dirname(__dirname)
 const SERVER_EXECUTABLE = path.join(MAIN_DIR, 'server.js')
 const CLIENT_EXECUTABLE = path.join(MAIN_DIR, 'client.js')
 
-const DEBUG_LOG = false
+const DEBUG_LOG = true
 
 test('Can proxy in private mode', async t => {
   const { bootstrap } = await createTestnet(3, t.teardown)
@@ -136,7 +136,7 @@ async function setupHyperteleServer (portToProxy, seed, bootstrap, t, { isPrivat
     args.push(seed)
   }
   if (keyFile) {
-    args.push('--key-file')
+    args.push('-i')
     args.push(keyFile)
     args.push('--key-file-password')
     args.push(password)
@@ -177,7 +177,7 @@ async function setupHyperteleClient (seed, bootstrap, t, { isPrivate = false, ke
     args.push(seed)
   }
   if (keyFile) {
-    args.push('--key-file')
+    args.push('-i')
     args.push(keyFile)
     args.push('--key-file-password')
     args.push(password)

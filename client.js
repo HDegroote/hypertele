@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+const path = require('path')
 const HyperDHT = require('hyperdht')
 const net = require('net')
 const argv = require('minimist')(process.argv.slice(2))
@@ -11,7 +12,7 @@ const connPiper = libNet.connPiper
 const SecureKey = require('secure-key')
 
 async function main () {
-  const helpMsg = 'Usage:\nhypertele -p port_listen -u unix_socket ?--address service_address ?-c conf.json ?-i identity.json ?-s peer_key ?--private ?--key-file ?--key-file-password'
+  const helpMsg = 'Usage:\nhypertele -p port_listen -u unix_socket ?--address service_address ?-c conf.json ?-i identity.json ?-s peer_key ?--private'
 
   if (argv.help) {
     console.log(helpMsg)
@@ -33,6 +34,7 @@ async function main () {
   const target = argv.u ? argv.u : +argv.p
 
   const keyPair = await getKeyPair(argv, conf)
+  console.log('loaded keyPair', keyPair)
 
   // Unofficial opt, only used for tests
   let bootstrap = null
@@ -106,22 +108,18 @@ async function main () {
 }
 
 async function getKeyPair (argv, conf) {
-  if (argv['key-file']) {
-    if (argv.s && conf.private) throw new Error('key-file is not compatible with -s(eed) in private mode, since it uses the keys in the key-file instead of the seed')
+  const parseKeyFile = argv.i && path.parse(argv.i).ext !== 'json'
+
+  if (parseKeyFile) {
+    if (argv.s && conf.private) throw new Error('Loading identities from a keyfile is not compatible with -s(eed) in private mode, since it uses the keys in the key-file instead of the seed')
 
     const password = argv['key-file-password']
       ? b4a.from(argv['key-file-password'])
       : null // read from stdin if not specified
 
-    const secureKeyPair = await SecureKey.open(argv['key-file'], { password })
-
-    secureKeyPair.unlock()
-    const keyPair = {
-      publicKey: b4a.from(secureKeyPair.publicKey),
-      secretKey: b4a.from(secureKeyPair.secretKey)
-    }
-    secureKeyPair.lock()
-    secureKeyPair.clear()
+    const keyPair = await SecureKey.open(
+      argv.i, { protected: false, password }
+    )
 
     return keyPair
   }
