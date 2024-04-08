@@ -11,45 +11,47 @@ const MAIN_DIR = path.dirname(__dirname)
 const SERVER_EXECUTABLE = path.join(MAIN_DIR, 'server.js')
 const CLIENT_EXECUTABLE = path.join(MAIN_DIR, 'client.js')
 
-test('Can proxy in private mode', async t => {
-  const { bootstrap } = await createTestnet(3, t.teardown)
-  const portToProxy = await setupDummyServer(t.teardown)
-  const seed = 'a'.repeat(64)
+for (let i = 0; i < 100; i++) {
+  test('Can proxy in private mode', async t => {
+    const { bootstrap } = await createTestnet(3, t.teardown)
+    const portToProxy = await setupDummyServer(t.teardown)
+    const seed = 'a'.repeat(64)
 
-  await setupHyperteleServer(portToProxy, seed, bootstrap, t, { isPrivate: true })
-  const clientPort = await setupHyperteleClient(seed, bootstrap, t, { isPrivate: true })
+    await setupHyperteleServer(portToProxy, seed, bootstrap, t, { isPrivate: true })
+    const clientPort = await setupHyperteleClient(seed, bootstrap, t, { isPrivate: true })
 
-  const res = await request(clientPort)
-  t.is(res.data, 'You got served', 'Proxy works')
-})
+    const res = await request(clientPort)
+    t.is(res.data, 'You got served', 'Proxy works')
+  })
 
-test('Cannot access private-mode server with public key', async t => {
-  const { bootstrap } = await createTestnet(3, t.teardown)
-  const portToProxy = await setupDummyServer(t.teardown)
-  const seed = 'a'.repeat(64)
-  const keypair = HyperDHT.keyPair(b4a.from(seed, 'hex'))
-  const pubKey = b4a.toString(keypair.publicKey, 'hex')
+  test('Cannot access private-mode server with public key', async t => {
+    const { bootstrap } = await createTestnet(3, t.teardown)
+    const portToProxy = await setupDummyServer(t.teardown)
+    const seed = 'a'.repeat(64)
+    const keypair = HyperDHT.keyPair(b4a.from(seed, 'hex'))
+    const pubKey = b4a.toString(keypair.publicKey, 'hex')
 
-  await setupHyperteleServer(portToProxy, seed, bootstrap, t, { isPrivate: true })
-  const clientPort = await setupHyperteleClient(pubKey, bootstrap, t, { isPrivate: false })
+    await setupHyperteleServer(portToProxy, seed, bootstrap, t, { isPrivate: true })
+    const clientPort = await setupHyperteleClient(pubKey, bootstrap, t, { isPrivate: false })
 
-  // Could also be a socket hangup if more time is given
-  await t.exception(async () => await request(clientPort), /Request timeout/)
-})
+    // Could also be a socket hangup if more time is given
+    await t.exception(async () => await request(clientPort, { msTimeout: 1000 }), /Request timeout/)
+  })
 
-test('Can proxy in non-private mode', async t => {
-  const { bootstrap } = await createTestnet(3, t.teardown)
-  const portToProxy = await setupDummyServer(t.teardown)
-  const seed = 'a'.repeat(64)
-  const keypair = HyperDHT.keyPair(b4a.from(seed, 'hex'))
-  const pubKey = b4a.toString(keypair.publicKey, 'hex')
+  test('Can proxy in non-private mode', async t => {
+    const { bootstrap } = await createTestnet(3, t.teardown)
+    const portToProxy = await setupDummyServer(t.teardown)
+    const seed = 'a'.repeat(64)
+    const keypair = HyperDHT.keyPair(b4a.from(seed, 'hex'))
+    const pubKey = b4a.toString(keypair.publicKey, 'hex')
 
-  await setupHyperteleServer(portToProxy, seed, bootstrap, t, { isPrivate: false })
-  const clientPort = await setupHyperteleClient(pubKey, bootstrap, t, { isPrivate: false })
+    await setupHyperteleServer(portToProxy, seed, bootstrap, t, { isPrivate: false })
+    const clientPort = await setupHyperteleClient(pubKey, bootstrap, t, { isPrivate: false })
 
-  const res = await request(clientPort)
-  t.is(res.data, 'You got served', 'Proxy works')
-})
+    const res = await request(clientPort)
+    t.is(res.data, 'You got served', 'Proxy works')
+  })
+}
 
 async function setupDummyServer (teardown) {
   const server = http.createServer(async (req, res) => {
