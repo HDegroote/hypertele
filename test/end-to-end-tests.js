@@ -11,17 +11,22 @@ const MAIN_DIR = path.dirname(__dirname)
 const SERVER_EXECUTABLE = path.join(MAIN_DIR, 'server.js')
 const CLIENT_EXECUTABLE = path.join(MAIN_DIR, 'client.js')
 
-test('Can proxy in private mode', async t => {
-  const { bootstrap } = await createTestnet(3, t.teardown)
-  const portToProxy = await setupDummyServer(t.teardown)
-  const seed = 'a'.repeat(64)
+for (let i = 0; i < 10; i++) {
+  test('Can proxy in private mode', async t => {
+    const { bootstrap } = await createTestnet(3, t.teardown)
+    const portToProxy = await setupDummyServer(t.teardown)
+    const seed = 'a'.repeat(64)
 
-  await setupHyperteleServer(portToProxy, seed, bootstrap, t, { isPrivate: true })
-  const clientPort = await setupHyperteleClient(seed, bootstrap, t, { isPrivate: true })
+    await setupHyperteleServer(portToProxy, seed, bootstrap, t, { isPrivate: true })
+    const clientPort = await setupHyperteleClient(seed, bootstrap, t, { isPrivate: true })
 
-  const res = await request(clientPort)
-  t.is(res.data, 'You got served', 'Proxy works')
-})
+    const start = Date.now()
+    console.log('req')
+    const res = await request(clientPort)
+    console.log('done in', Date.now() - start, 'ms')
+    t.is(res.data, 'You got served', 'Proxy works')
+  })
+}
 
 test('Cannot access private-mode server with public key', async t => {
   const { bootstrap } = await createTestnet(3, t.teardown)
